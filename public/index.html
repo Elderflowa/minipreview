@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiniPreview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: 'minecraftiaregular';
+  src: url('https://db.onlinewebfonts.com/t/bf3f245b7cd53caea0cb07d265a64adc.woff2') format('woff2'),
+       url('https://db.onlinewebfonts.com/t/bf3f245b7cd53caea0cb07d265a64adc.woff') format('woff'),
+       url('https://db.onlinewebfonts.com/t/bf3f245b7cd53caea0cb07d265a64adc.ttf') format('truetype');
+  font-weight: normal; font-style: normal;
+}
+
+[data-theme="light"] {
+  --bg: #f0f2f5;
+  --surface: #ffffff;
+  --surface2: #f5f6f8;
+  --border: #d0d6e0;
+  --teal: #3f6d6b;
+  --teal-dark: #2a4f4d;
+  --teal-glow: rgba(63,109,107,0.12);
+  --text: #1a2030;
+  --text-dim: #6e7f96;
+  --green: #2a8a3e;
+  --shadow: rgba(0,0,0,0.08);
+}
+[data-theme="dark"] {
+  --bg: #0e1117;
+  --surface: #161b24;
+  --surface2: #1e2533;
+  --border: #2a3345;
+  --teal: #609da0;
+  --teal-dark: #3f6d6b;
+  --teal-glow: rgba(96,157,160,0.15);
+  --text: #c9d1d9;
+  --text-dim: #6e7f96;
+  --green: #57c26a;
+  --shadow: rgba(0,0,0,0.4);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  min-height: 100vh;
+  transition: background 0.2s, color 0.2s;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(96,157,160,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(96,157,160,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none; z-index: 0;
+}
+
+.header {
+  position: relative; z-index: 10;
+  padding: 14px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 14px;
+  background-color: var(--surface);
+}
+.header-icon {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+}
+.header h1 { font-family: 'Unbounded', sans-serif; font-size: 13px; font-weight: 700; color: var(--teal); letter-spacing: 0.05em; }
+.header h1 span { color: var(--text-dim); font-weight: 400; font-size: 11px; margin-left: 6px; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.theme-toggle {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 20px;
+  padding: 4px 12px; cursor: pointer; font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text-dim); transition: all 0.15s;
+}
+.theme-toggle:hover { border-color: var(--teal); color: var(--teal); }
+
+.page {
+  position: relative; z-index: 1;
+  max-width: 1100px; margin: 0 auto;
+  padding: 28px 24px 60px;
+}
+
+.section-label {
+  font-family: 'Unbounded', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: 0.14em; color: var(--text-dim); text-transform: uppercase;
+  margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── Preview row ── */
+.preview-wrap { display: flex; gap: 20px; align-items: center; justify-content: center; margin-bottom: 28px; flex-wrap: wrap; }
+
+.icon-panel { flex-shrink: 0; width: 72px; }
+.icon-upload-zone {
+  width: 72px; height: 72px;
+  border: 2px dashed var(--border); border-radius: 8px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+  background: var(--surface2);
+}
+.icon-upload-zone:hover { border-color: var(--teal); background: var(--teal-glow); }
+.icon-upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.icon-upload-zone img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; display: none; }
+.icon-placeholder { font-size: 20px; color: var(--text-dim); pointer-events: none; }
+.icon-upload-hint { font-size: 8px; color: var(--text-dim); text-align: center; pointer-events: none; padding: 0 4px; line-height: 1.3; }
+.palette-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; width: 540px; max-width: 100%; }
+.palette-swatch {
+  width: 22px; height: 22px; border-radius: 4px;
+  border: 2px solid transparent; cursor: pointer;
+  transition: all 0.15s; position: relative; flex-shrink: 0;
+}
+.palette-swatch:hover { transform: scale(1.2); border-color: var(--text); z-index: 2; }
+.swatch-tip {
+  position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+  font-size: 8px; color: var(--text-dim); white-space: nowrap;
+  opacity: 0; transition: opacity 0.15s; pointer-events: none;
+  background: var(--surface); padding: 1px 4px; border-radius: 2px; border: 1px solid var(--border);
+}
+.palette-swatch:hover .swatch-tip { opacity: 1; }
+
+/* ── MC Preview ──
+   Exact spec: 540px wide, icon 64x64, name 20px line, motd 20px/line × 2 = 40px
+   Total row height: 64px icon + 2px margin top/bottom = 68px
+*/
+.preview-main { flex: 0 0 auto; }
+.mc-window-outer { width: 540px; max-width: 100%; }
+.mc-window {
+  width: 540px; max-width: 100%;
+  background: #1a1a2a;
+  border: 2px solid #111;
+  overflow: hidden;
+}
+.mc-server-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 68px; /* 64px icon + 2px top + 2px bottom */
+}
+/* Icon: exactly 64x64, 2px margin each side */
+.mc-icon-box {
+  width: 64px; height: 64px;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  background: #111;
+  overflow: hidden;
+  margin: 2px;
+}
+.mc-icon-box img {
+  width: 64px; height: 64px;
+  image-rendering: pixelated; object-fit: cover; display: block;
+}
+.mc-info {
+  flex: 1; min-width: 0;
+  padding: 2px 4px 0 4px;
+  display: flex; flex-direction: column; justify-content: center;
+  overflow: hidden;
+}
+/* Server name: 20px line */
+.mc-name {
+  font-family: 'minecraftiaregular', monospace;
+  font-size: 14px; color: #ffffff;
+  line-height: 20px; height: 20px;
+  text-shadow: 2px 2px 0 #3f3f3f;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* MOTD: exactly 20px per line, 2 lines = 40px */
+.mc-motd {
+  font-family: 'minecraftiaregular', monospace;
+  font-size: 13px;
+  line-height: 20px;
+  height: 40px; max-height: 40px;
+  overflow: hidden;
+  text-shadow: 2px 2px 0 #3f3f3f;
+}
+.mc-motd div {
+  height: 20px; line-height: 20px; display: block;
+  color: #ffffff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mc-right {
+  flex-shrink: 0;
+  width: 56px;
+  padding: 4px 6px;
+  display: flex; flex-direction: column;
+  align-items: flex-end; justify-content: space-between;
+  align-self: stretch;
+}
+.mc-count {
+  font-family: 'minecraftiaregular', monospace;
+  font-size: 12px; color: #aaaaaa;
+  white-space: nowrap;
+  text-shadow: 2px 2px 0 #3f3f3f;
+}
+
+/* ── Editor ── */
+/* Toolbar */
+.toolbar {
+  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px 8px 0 0;
+  border-bottom: none;
+}
+.tb-btn {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
+  padding: 3px 8px; font-size: 12px; color: var(--text);
+  cursor: pointer; transition: all 0.15s;
+  font-family: 'JetBrains Mono', monospace; user-select: none; line-height: 1.4;
+}
+.tb-btn:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-glow); }
+.tb-sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
+.tb-color-tag {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 3px;
+  padding: 2px 6px; font-size: 10px;
+  cursor: pointer; transition: all 0.15s; user-select: none;
+  font-family: 'JetBrains Mono', monospace; white-space: nowrap;
+}
+.tb-color-tag:hover { border-color: currentColor; opacity: 0.9; }
+
+/* Classic panel */
+.classic-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 0 0 8px 8px; padding: 16px;
+}
+.line-row { margin-bottom: 12px; }
+.line-row:last-child { margin-bottom: 0; }
+.line-label { font-size: 10px; color: var(--text-dim); margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+.badge { background: var(--teal-glow); color: var(--teal); border: 1px solid rgba(96,157,160,0.3); padding: 1px 6px; border-radius: 3px; font-size: 9px; }
+input[type="text"] {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+  padding: 9px 13px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+}
+input[type="text"]:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-glow); }
+
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* Gradient builder */
+.gb-label { font-size: 10px; color: var(--text-dim); margin-bottom: 8px; }
+.gb-row { display: flex; gap: 8px; align-items: center; }
+input[type="color"] {
+  width: 34px; height: 30px; padding: 2px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; cursor: pointer;
+}
+.gradient-preview-bar {
+  flex: 1; height: 30px; border-radius: 5px; border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+  font-family: 'JetBrains Mono', monospace; text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.insert-btn {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim);
+  padding: 5px 11px; border-radius: 5px; font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.insert-btn:hover { border-color: var(--teal); color: var(--teal); }
+.hint { font-size: 10px; color: var(--text-dim); margin-top: 5px; }
+
+/* Config */
+.config-section { margin-top: 20px; }
+.config-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.config-header {
+  padding: 9px 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+  font-size: 11px; color: var(--text-dim); display: flex; justify-content: space-between; align-items: center;
+}
+.config-block pre { padding: 14px; font-size: 12px; line-height: 1.7; overflow-x: auto; color: var(--text); white-space: pre-wrap; word-break: break-all; }
+.copy-btn {
+  background: var(--teal-glow); border: 1px solid rgba(96,157,160,0.4); color: var(--teal);
+  padding: 3px 11px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; cursor: pointer; transition: all 0.15s;
+}
+.copy-btn:hover { background: rgba(96,157,160,0.3); }
+.copy-btn.copied { color: var(--green); border-color: var(--green); background: rgba(87,194,106,0.1); }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Inline hex color picker ── */
+.line-input-wrap { position: relative; }
+.hex-picker-popup {
+  position: fixed;
+  z-index: 200;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 4px 20px var(--shadow);
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  min-width: 80px;
+}
+.hex-picker-popup.open { display: flex; }
+.hex-picker-popup input[type="color"] {
+  width: 56px; height: 56px;
+  padding: 2px; border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer; background: none;
+}
+.hex-picker-popup .hex-val {
+  font-size: 10px; color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+.hex-copy-btn {
+  flex: 1; padding: 3px 0;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 4px; font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--teal); cursor: pointer;
+  transition: all 0.15s;
+}
+.hex-copy-btn:hover { border-color: var(--teal); background: var(--teal-glow); }
+
+.line-input-wrap { position: relative; }
+
+/* ── Inline hex color picker ── */
+.hex-picker-popup {
+  position: fixed; z-index: 200;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 4px 20px var(--shadow);
+  display: none; flex-direction: column;
+  gap: 6px; align-items: center; min-width: 80px;
+}
+.hex-picker-popup.open { display: flex; }
+.hex-picker-popup input[type="color"] {
+  width: 56px; height: 56px; padding: 2px;
+  border-radius: 6px; border: 1px solid var(--border);
+  cursor: pointer; background: none;
+}
+.hex-picker-popup .hex-val {
+  font-size: 10px; color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+.hex-copy-btn {
+  flex: 1; padding: 3px 0;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 4px; font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--teal); cursor: pointer;
+  transition: all 0.15s;
+}
+.hex-copy-btn:hover { border-color: var(--teal); background: var(--teal-glow); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">⬡</div>
+  <h1>MiniPreview <span>— MiniMOTD live editor</span></h1>
+  <div class="header-right">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀ Light</button>
+  </div>
+</div>
+
+<div class="page">
+
+  <div class="section-label">Live Preview</div>
+  <div class="preview-wrap">
+    <!-- Icon upload -->
+    <div class="icon-panel">
+      <div class="icon-upload-zone">
+        <input type="file" id="iconUpload" accept="image/png" onchange="loadIcon(event)">
+        <img id="iconImgSmall" alt="">
+        <div class="icon-placeholder" id="iconPlaceholder">⬡</div>
+        <div class="icon-upload-hint" id="uploadHint">click to upload icon</div>
+      </div>
+    </div>
+
+    <!-- MC preview + palette below -->
+    <div class="preview-main">
+      <div class="mc-window-outer">
+        <div class="mc-window">
+          <div class="mc-server-row">
+            <div class="mc-icon-box" id="mcIconBox">
+              <img id="mcDefaultIcon" src="https://minecraft.tools/en/css/img/motd-img.png" style="width:64px;height:64px;image-rendering:pixelated;object-fit:cover;display:block;" onerror="this.style.display='none'">
+            </div>
+            <div class="mc-info">
+              <div class="mc-name">Minecraft Server</div>
+              <div class="mc-motd" id="motdPreview">
+                <div>&nbsp;</div><div>&nbsp;</div>
+              </div>
+            </div>
+            <div class="mc-right">
+              <!-- ping icon: 20x10px native, zoom handles the scaling -->
+              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAACXBIWXMAAAsSAAALEgHS3X78AAAATUlEQVR4nGP4//8/AzUxVQ0bnAYy/Ff8z/Bf8f/gMRDTAAifoZ0fguluIGED6G0g6QbQ2kDKXUQvA8k2gOYGwr0KFaCUTzsDqYUHv4EAXEr1nnx+P+4AAAAASUVORK5CYII=" style="width:20px;height:20px;image-rendering:pixelated;display:block;">
+              <div class="mc-count">0/69</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="palette-row" id="paletteRow"></div>
+    </div>
+  </div>
+
+  <!-- Editor -->
+  <div class="section-label">Editor</div>
+
+  <!-- Toolbar -->
+  <div class="toolbar" id="toolbar">
+    <button class="tb-btn" onclick="fmt('<bold>','</bold>')"><b>B</b></button>
+    <button class="tb-btn" onclick="fmt('<italic>','</italic>')"><i>I</i></button>
+    <button class="tb-btn" onclick="fmt('<underlined>','</underlined>')"><u>U</u></button>
+    <button class="tb-btn" onclick="fmt('<strikethrough>','</strikethrough>')"><s>S</s></button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="fmt('<rainbow>','</rainbow>')">🌈</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="loadExample()">Load Example</button>
+  </div>
+
+  <!-- Classic panel -->
+  <div class="classic-panel">
+    <div class="line-row">
+      <div class="line-label">Line 1 <span class="badge">MiniMessage</span></div>
+      <div class="line-input-wrap"><input type="text" id="line1" value="<gradient:#3f6d6b:#609da0><bold>|| BCG+ Helpdesk Edition ||</bold></gradient>" oninput="update()" onclick="checkHexClick(event,this)" onkeyup="checkHexClick(event,this)"></div>
+    </div>
+    <div class="line-row">
+      <div class="line-label">Line 2 <span class="badge">MiniMessage</span></div>
+      <div class="line-input-wrap"><input type="text" id="line2" value="<gradient:#609da0:#3f6d6b><bold>E</bold></gradient><gradient:#3f6d6b:#609da0><bold>ldr</bold></gradient> <dark_gray>| <gray>Self-hosted" oninput="update()" onclick="checkHexClick(event,this)" onkeyup="checkHexClick(event,this)"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="gb-label">Gradient Builder</div>
+    <div class="gb-row">
+      <input type="color" id="gc1" value="#3f6d6b" oninput="updateGradientPreview()">
+      <input type="color" id="gc2" value="#609da0" oninput="updateGradientPreview()">
+      <div class="gradient-preview-bar" id="gradientPreview">Preview</div>
+      <button class="insert-btn" onclick="insertGradient()">Insert</button>
+    </div>
+    <div class="hint">Pick two colors → Insert wraps selected text</div>
+  </div>
+
+  <!-- Config -->
+  <div class="config-section">
+    <div class="section-label">Config Output</div>
+    <div class="config-block">
+      <div class="config-header">
+        <span>main.conf — motds block</span>
+        <button class="copy-btn" id="copyBtn" onclick="copyConfig()">Copy</button>
+      </div>
+      <pre id="configOutput"></pre>
+    </div>
+  
+<!-- Inline hex color picker popup -->
+<div class="hex-picker-popup" id="hexPickerPopup">
+  <input type="color" id="hexPickerColor" oninput="applyHexPick()">
+  <div class="hex-val" id="hexPickerVal">#000000</div>
+  <div style="display:flex;gap:4px;width:100%">
+    <button class="hex-copy-btn" onclick="copyFromGradient(1)" title="Copy from Gradient Color 1">← C1</button>
+    <button class="hex-copy-btn" onclick="copyFromGradient(2)" title="Copy from Gradient Color 2">← C2</button>
+  </div>
+</div>
+</div>
+
+<script>
+const MC_COLORS = [
+  {name:'black',hex:'#000000'},{name:'dark_blue',hex:'#0000AA'},
+  {name:'dark_green',hex:'#00AA00'},{name:'dark_aqua',hex:'#00AAAA'},
+  {name:'dark_red',hex:'#AA0000'},{name:'dark_purple',hex:'#AA00AA'},
+  {name:'gold',hex:'#FFAA00'},{name:'gray',hex:'#AAAAAA'},
+  {name:'dark_gray',hex:'#555555'},{name:'blue',hex:'#5555FF'},
+  {name:'green',hex:'#55FF55'},{name:'aqua',hex:'#55FFFF'},
+  {name:'red',hex:'#FF5555'},{name:'light_purple',hex:'#FF55FF'},
+  {name:'yellow',hex:'#FFFF55'},{name:'white',hex:'#FFFFFF'},
+];
+
+// Track last focused input
+let lastFocused = document.getElementById('line1');
+['line1','line2'].forEach(id => {
+  document.getElementById(id).addEventListener('focus', e => { lastFocused = e.target; });
+});
+
+function fmt(open, close) {
+  const el = lastFocused;
+  if (!el) return;
+  const s = el.selectionStart, e2 = el.selectionEnd;
+  const sel = el.value.substring(s, e2);
+  el.value = el.value.substring(0,s) + open + sel + close + el.value.substring(e2);
+  el.focus();
+  el.selectionStart = s + open.length;
+  el.selectionEnd = s + open.length + sel.length;
+  update();
+}
+
+// Theme
+let theme = 'light';
+function toggleTheme() {
+  theme = theme === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeBtn').textContent = theme === 'light' ? '☀ Light' : '☾ Dark';
+}
+
+// MiniMessage parser
+function lerpColor(c1, c2, t) {
+  const p = v => parseInt(v,16);
+  const r1=p(c1.slice(1,3)),g1=p(c1.slice(3,5)),b1=p(c1.slice(5,7));
+  const r2=p(c2.slice(1,3)),g2=p(c2.slice(3,5)),b2=p(c2.slice(5,7));
+  return '#'+[r1+(r2-r1)*t,g1+(g2-g1)*t,b1+(b2-b1)*t].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+}
+
+function parseMinimessage(text) {
+  // Escape HTML first
+  text = text.replace(/<online_players>/g,'<span style="color:#55FFFF">4</span>');
+  text = text.replace(/<max_players>/g,'<span style="color:#AAAAAA">69</span>');
+  text = text.replace(/<gradient:([^>]+)>([\s\S]*?)<\/gradient>/g,(_,colors,content)=>{
+    const parts = colors.split(':');
+    const c1 = parts[0], c2 = parts[1]||'#ffffff';
+    const hasBold = /<bold>/.test(content)||/<\/bold>/.test(content);
+    const hasItalic = /<italic>/.test(content)||/<\/italic>/.test(content);
+    const stripped = content.replace(/<[^>]*>/g,'');
+    const chars = [...stripped];
+    if(!chars.length) return '';
+    return chars.map((ch,i)=>{
+      const col = lerpColor(c1,c2,chars.length>1?i/(chars.length-1):0);
+      let style=`color:${col};`;
+      if(hasBold) style+='font-weight:bold;';
+      if(hasItalic) style+='font-style:italic;';
+      return `<span style="${style}">${ch===' '?'&nbsp;':ch}</span>`;
+    }).join('');
+  });
+  text = text.replace(/<rainbow>([\s\S]*?)<\/rainbow>/g,(_,c)=>
+    [...c].map((ch,i,a)=>`<span style="color:hsl(${i/a.length*360},100%,65%)">${ch}</span>`).join('')
+  );
+  MC_COLORS.forEach(c=>{
+    text=text.replace(new RegExp(`<${c.name}>([\\s\\S]*?)<\\/${c.name}>`,'g'),`<span style="color:${c.hex}">$1</span>`);
+    text=text.replace(new RegExp(`<${c.name}>`,'g'),`<span style="color:${c.hex}">`);
+    text=text.replace(new RegExp(`<\\/${c.name}>`,'g'),'</span>');
+  });
+  text=text.replace(/<(#[0-9a-fA-F]{6})>/g,'<span style="color:$1">');
+  text=text.replace(/<bold>([\s\S]*?)<\/bold>/g,'<strong>$1</strong>');
+  text=text.replace(/<italic>([\s\S]*?)<\/italic>/g,'<em>$1</em>');
+  text=text.replace(/<underlined>([\s\S]*?)<\/underlined>/g,'<u>$1</u>');
+  text=text.replace(/<strikethrough>([\s\S]*?)<\/strikethrough>/g,'<s>$1</s>');
+  text=text.replace(/<bold>/g,'<strong>').replace(/<\/bold>/g,'</strong>');
+  text=text.replace(/<italic>/g,'<em>').replace(/<\/italic>/g,'</em>');
+  text=text.replace(/<obfuscated>([\s\S]*?)<\/obfuscated>/g,'<span class="obfuscated">$1</span>');
+  text=text.replace(/<reset>/g,'</span></strong></em>');
+  // close any unclosed spans
+  return text;
+}
+
+function update() {
+  const l1 = document.getElementById('line1').value;
+  const l2 = document.getElementById('line2').value;
+  document.getElementById('motdPreview').innerHTML =
+    `<div>${parseMinimessage(l1)||'&nbsp;'}</div><div>${parseMinimessage(l2)||'&nbsp;'}</div>`;
+  document.getElementById('configOutput').textContent =
+`motds=[\n    {\n        icon=server-icon\n        line1="${l1}"\n        line2="${l2}"\n    }\n]`;
+}
+
+function updateGradientPreview() {
+  const c1=document.getElementById('gc1').value;
+  const c2=document.getElementById('gc2').value;
+  const p=document.getElementById('gradientPreview');
+  p.style.background=`linear-gradient(90deg,${c1},${c2})`;
+  p.textContent='';
+}
+function insertGradient() {
+  const c1=document.getElementById('gc1').value;
+  const c2=document.getElementById('gc2').value;
+  fmt(`<gradient:${c1}:${c2}>`,'</gradient>');
+}
+
+function copyConfig() {
+  navigator.clipboard.writeText(document.getElementById('configOutput').textContent).then(()=>{
+    const btn=document.getElementById('copyBtn');
+    btn.textContent='✓ Copied'; btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied');},2000);
+  });
+}
+
+function loadIcon(e) {
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const src=ev.target.result;
+    const imgSmall=document.getElementById('iconImgSmall');
+    imgSmall.src=src; imgSmall.style.display='block';
+    document.getElementById('iconPlaceholder').style.display='none';
+    document.getElementById('uploadHint').textContent='✓ '+file.name;
+    const mcIcon=document.getElementById('mcDefaultIcon');
+    mcIcon.src=src; mcIcon.style.display='block'; mcIcon.style.width='64px'; mcIcon.style.height='64px';
+    extractPalette(src);
+  };
+  reader.readAsDataURL(file);
+}
+
+function extractPalette(src) {
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas'); c.width=64; c.height=64;
+    const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,64,64);
+    const d=ctx.getImageData(0,0,64,64).data;
+    const buckets={};
+    for(let i=0;i<d.length;i+=4){
+      if(d[i+3]<128)continue;
+      const r=Math.round(d[i]/24)*24,g=Math.round(d[i+1]/24)*24,b=Math.round(d[i+2]/24)*24;
+      const k=`${r},${g},${b}`; buckets[k]=(buckets[k]||0)+1;
+    }
+    const sorted=Object.entries(buckets).sort((a,b)=>b[1]-a[1])
+      .filter(([k])=>{const[r,g,b]=k.split(',').map(Number);const br=(r+g+b)/3;return br>15&&br<240;})
+      .slice(0,10);
+    const pr=document.getElementById('paletteRow'); pr.innerHTML='';
+    sorted.forEach(([key])=>{
+      const [r,g,b]=key.split(',').map(Number);
+      const hex='#'+[r,g,b].map(v=>Math.min(255,v).toString(16).padStart(2,'0')).join('');
+      const sw=document.createElement('div'); sw.className='palette-swatch';
+      sw.style.background=hex; sw.title=hex;
+      sw.innerHTML=`<div class="swatch-tip">${hex}</div>`;
+      sw.onclick=()=>{ fmt(`<${hex}>`,''); document.getElementById('gc1').value=hex; updateGradientPreview(); };
+      pr.appendChild(sw);
+    });
+  };
+  img.src=src;
+}
+
+
+
+// ── Inline hex color picker ──
+let hexPickState = null;
+
+function checkHexClick(e, input) {
+  const pos = input.selectionStart;
+  const val = input.value;
+  const hexRe = /#[0-9a-fA-F]{6}/g;
+  let match;
+  while ((match = hexRe.exec(val)) !== null) {
+    const start = match.index;
+    const end = start + 7;
+    if (pos >= start && pos <= end) {
+      openHexPicker(input, start, end, match[0]);
+      return;
+    }
+  }
+  closeHexPicker();
+}
+
+function openHexPicker(input, start, end, hex) {
+  hexPickState = { input, start, end };
+  const popup = document.getElementById('hexPickerPopup');
+  const picker = document.getElementById('hexPickerColor');
+  document.getElementById('hexPickerVal').textContent = hex;
+  picker.value = hex;
+  const rect = input.getBoundingClientRect();
+  // Approximate char position — monospace ~8px per char
+  const x = Math.min(rect.left + start * 7.8, window.innerWidth - 110);
+  const y = rect.bottom + 6;
+  popup.style.left = x + 'px';
+  popup.style.top = y + 'px';
+  popup.classList.add('open');
+}
+
+
+function copyFromGradient(n) {
+  const hex = document.getElementById('gc' + n).value;
+  const picker = document.getElementById('hexPickerColor');
+  picker.value = hex;
+  document.getElementById('hexPickerVal').textContent = hex;
+  applyHexPick();
+}
+
+function applyHexPick() {
+  if (!hexPickState) return;
+  const { input, start, end } = hexPickState;
+  const newHex = document.getElementById('hexPickerColor').value;
+  document.getElementById('hexPickerVal').textContent = newHex;
+  input.value = input.value.substring(0, start) + newHex + input.value.substring(end);
+  hexPickState.end = start + 7;
+  update();
+}
+
+function closeHexPicker() {
+  document.getElementById('hexPickerPopup').classList.remove('open');
+  hexPickState = null;
+}
+
+document.addEventListener('click', e => {
+  const popup = document.getElementById('hexPickerPopup');
+  if (popup && !popup.contains(e.target) && !e.target.matches('input[type="text"]')) {
+    closeHexPicker();
+  }
+});
+
+
+function loadExample() {
+  document.getElementById('line1').value = '<center><gradient:#3f6d6b:#609da0><bold>BCG+</bold></gradient> <white>Helpdesk Edition</white></center>';
+  document.getElementById('line2').value = '<center><gradient:#3f6d6b:#609da0>\u20aa Selfhosted by Eldr \u20aa</gradient></center>';
+  update();
+}
+
+document.head.insertAdjacentHTML('beforeend',`<style>
+  @keyframes obfuscate{0%,100%{opacity:1}50%{opacity:0}}
+  .obfuscated{animation:obfuscate 0.1s infinite}
+</style>`);
+
+updateGradientPreview();
+update();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,7 @@
+services:
+  minipreview:
+    build: .
+    container_name: minipreview
+    ports:
+      - "15000:80"
+    restart: unless-stopped
