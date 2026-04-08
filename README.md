@@ -6,7 +6,10 @@
 
 # minipreview
 
-**MiniPreview** is a selfhostable simple preview/configurator for the minecraft server mod [MiniMOTD](https://github.com/jpenilla/MiniMOTD) by jpenilla. It serves to simplify getting your desired look on your minecraft servers MOTD.
+Website: https://elderflowa.github.io/minipreview/
+
+**MiniPreview** is a selfhostable tool for previewing and configuring the minecraft server mod [MiniMOTD](https://github.com/jpenilla/MiniMOTD) by jpenilla. 
+It serves to simplify getting your desired look on your minecraft servers MOTD, without working directly on your server.
 
 **Full Disclaimer:** Coded with Claude AI.
 
